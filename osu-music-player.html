@@ -526,7 +526,7 @@ function updateVolIcon(){
   $("volIcon").textContent = v===0 ? "🔇" : v<=0.33 ? "🔈" : v<=0.66 ? "🔉" : "🔊";
 }
 $("volBar").oninput = (e)=>{ audio.volume = e.target.value/100; audio.muted=false; updateVolIcon(); fillRange(e.target); };
-$("volIcon").onclick = ()=>{ audio.muted = !audio.muted; if(!audio.muted && audio.volume===0){ audio.volume=0.5; $("volBar").value=50; } updateVolIcon(); fillRange($("volBar")); };
+$("volIcon").onclick = ()=>{ audio.muted = !audio.muted; if(!audio.muted && audio.volume===0){ audio.volume=0.5; } $("volBar").value = audio.muted ? 0 : Math.round(audio.volume*100); updateVolIcon(); fillRange($("volBar")); };
 audio.volume = 0.9; updateVolIcon(); fillRange($("volBar"));
 $("searchBox").oninput = ()=>applyFilter();
 $("panelBtn").onclick=()=>{ const sp=$("sidepanel"); const open=sp.classList.contains("hidden"); sp.classList.toggle("hidden"); panelClosed=!open; $("panelBtn").classList.toggle("on",open); };
