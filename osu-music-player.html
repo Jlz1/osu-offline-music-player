@@ -111,7 +111,7 @@
       </div>
     </div>
     <div class="right">
-      <span class="icb" title="Volume">🔊</span>
+      <button class="icb" id="volIcon" title="Mute / unmute">🔊</button>
       <input type="range" class="vol" id="volBar" min="0" max="100" value="90">
     </div>
   </div>
@@ -411,8 +411,13 @@ audio.onended = ()=>{ if(repeat===2){ audio.currentTime=0; audio.play(); } else 
 audio.ontimeupdate = ()=>{ $("cur").textContent=fmtTime(audio.currentTime); if(audio.duration){ $("seekBar").value = (audio.currentTime/audio.duration)*1000; } };
 audio.onloadedmetadata = ()=>{ $("dur").textContent=fmtTime(audio.duration); };
 $("seekBar").oninput = (e)=>{ if(audio.duration) audio.currentTime = (e.target.value/1000)*audio.duration; };
-$("volBar").oninput = (e)=>{ audio.volume = e.target.value/100; };
-audio.volume = 0.9;
+function updateVolIcon(){
+  const v = audio.muted ? 0 : audio.volume;
+  $("volIcon").textContent = v===0 ? "🔇" : v<=0.33 ? "🔈" : v<=0.66 ? "🔉" : "🔊";
+}
+$("volBar").oninput = (e)=>{ audio.volume = e.target.value/100; audio.muted=false; updateVolIcon(); };
+$("volIcon").onclick = ()=>{ audio.muted = !audio.muted; if(!audio.muted && audio.volume===0){ audio.volume=0.5; $("volBar").value=50; } updateVolIcon(); };
+audio.volume = 0.9; updateVolIcon();
 $("searchBox").oninput = ()=>applyFilter();
 document.addEventListener("keydown",(e)=>{ if(e.target.tagName==="INPUT")return; if(e.code==="Space"){e.preventDefault();$("playBtn").click();} if(e.code==="ArrowRight"&&e.ctrlKey)next(); if(e.code==="ArrowLeft"&&e.ctrlKey)prev(); });
 </script>
