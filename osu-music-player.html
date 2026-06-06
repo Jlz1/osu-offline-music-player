@@ -68,6 +68,13 @@
   .loading{display:flex;align-items:center;gap:10px;color:var(--muted);padding:24px;justify-content:center}
   .spin{width:18px;height:18px;border:2px solid #2c3346;border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}
+  .groupbar{display:flex;align-items:center;gap:8px;padding:0 20px 10px}
+  .groupbar .glabel{color:var(--muted);font-size:12px;margin-right:2px}
+  .gpill{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:5px 13px;border-radius:999px;font-size:12px;cursor:pointer;transition:.15s}
+  .gpill:hover{color:var(--text);border-color:var(--accent)}
+  .gpill.on{background:var(--accent);color:#1a0a12;border-color:var(--accent);font-weight:700}
+  .grouphdr{padding:14px 14px 6px;color:var(--accent);font-weight:700;font-size:13px;letter-spacing:.3px;position:sticky;top:30px;background:var(--bg);z-index:1}
+  .grouphdr span{color:var(--muted);font-weight:500;font-size:11px;margin-left:4px}
   .hidden{display:none!important}
 </style>
 </head>
@@ -81,6 +88,7 @@
     <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden">
   </div>
   <div class="search"><input id="searchBox" placeholder="Search title, artist, source…" autocomplete="off"></div>
+  <div class="groupbar"><span class="glabel">Group by:</span><button class="gpill on" data-g="none">None</button><button class="gpill" data-g="artist">Artist</button><button class="gpill" data-g="source">Source</button></div>
   <div class="count" id="count"></div>
   <div class="main" id="main">
     <div class="hint" id="hint">
@@ -285,6 +293,7 @@ let fileMap = new Map();     // "files/h/hh/hash" (lowercase) -> File
 let rootPrefix = "";
 let library = { tracks: [] };
 let view = [];               // filtered/ordered indices into library.tracks
+let groupBy = "none";       // "none" | "artist" | "source"
 let curIdx = -1;
 let audio = new Audio();
 let curUrl = null, curCoverUrl = null;
@@ -352,21 +361,42 @@ function applyFilter(){
   renderList();
 }
 
+function rowHtml(i,pos){
+  const t = library.tracks[i];
+  return '<div class="row'+(i===curIdx?' active':'')+'" data-idx="'+i+'" data-pos="'+pos+'">'
+    +'<div style="position:relative"><div class="idx">'+(pos+1)+'</div><img class="cover" style="display:none"></div>'
+    +'<div class="cell"><div class="t-title">'+esc(t.title)+'</div><div class="t-sub">'+esc(t.titleA&&t.titleA!==t.title?t.titleA:"")+'</div></div>'
+    +'<div class="cell t-artist">'+esc(t.artist)+'</div>'
+    +'<div class="dur">'+esc(t.source||"")+'</div></div>';
+}
+function orderedView(){
+  if(groupBy==="none") return {order:view.slice(), groups:null};
+  const keyOf=(t)=> groupBy==="artist" ? (t.artist||"(Unknown artist)") : (t.source||"(No source)");
+  const byKey=new Map();
+  for(const i of view){ const k=keyOf(library.tracks[i]); if(!byKey.has(k)) byKey.set(k,[]); byKey.get(k).push(i); }
+  let keys=[...byKey.keys()].sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
+  if(groupBy==="source" && byKey.has("(No source)")) keys=keys.filter(k=>k!=="(No source)").concat(["(No source)"]);
+  const order=[], groups=[];
+  for(const k of keys){ groups.push({key:k,count:byKey.get(k).length}); for(const i of byKey.get(k)) order.push(i); }
+  return {order, groups};
+}
 function renderList(){
   $("count").textContent = view.length + " songs";
-  // revoke offscreen cover urls to keep memory low
   for(const [i,u] of coverUrls){ URL.revokeObjectURL(u); } coverUrls.clear();
+  const {order, groups} = orderedView();
+  view = order;
   const head = '<div class="listhead"><div>#</div><div>Title</div><div>Artist</div><div style="text-align:right">Source</div></div>';
-  const rows = view.map((i,pos)=>{
-    const t = library.tracks[i];
-    return '<div class="row'+(i===curIdx?' active':'')+'" data-idx="'+i+'" data-pos="'+pos+'">'
-      +'<div style="position:relative"><div class="idx">'+(pos+1)+'</div><img class="cover" style="display:none">'+'</div>'
-      +'<div class="cell"><div class="t-title">'+esc(t.title)+'</div><div class="t-sub">'+esc(t.titleA&&t.titleA!==t.title?t.titleA:"")+'</div></div>'
-      +'<div class="cell t-artist">'+esc(t.artist)+'</div>'
-      +'<div class="dur">'+esc(t.source||"")+'</div></div>';
-  }).join("");
-  $("main").innerHTML = head + rows;
-  // show cover instead of index, observe
+  let html = head;
+  if(groups){
+    let pos=0;
+    for(const g of groups){
+      html += '<div class="grouphdr">'+esc(g.key)+' <span>'+g.count+'</span></div>';
+      for(let k=0;k<g.count;k++){ html += rowHtml(view[pos], pos); pos++; }
+    }
+  } else {
+    html += view.map((i,pos)=>rowHtml(i,pos)).join("");
+  }
+  $("main").innerHTML = html;
   document.querySelectorAll(".row").forEach(el=>{
     const img = el.querySelector("img.cover"), idxNum = el.querySelector(".idx");
     img.style.display="block"; idxNum.style.display="none";
@@ -419,6 +449,7 @@ $("volBar").oninput = (e)=>{ audio.volume = e.target.value/100; audio.muted=fals
 $("volIcon").onclick = ()=>{ audio.muted = !audio.muted; if(!audio.muted && audio.volume===0){ audio.volume=0.5; $("volBar").value=50; } updateVolIcon(); };
 audio.volume = 0.9; updateVolIcon();
 $("searchBox").oninput = ()=>applyFilter();
+document.querySelectorAll(".gpill").forEach(b=>{ b.onclick=()=>{ groupBy=b.dataset.g; document.querySelectorAll(".gpill").forEach(x=>x.classList.toggle("on",x===b)); applyFilter(); }; });
 document.addEventListener("keydown",(e)=>{ if(e.target.tagName==="INPUT")return; if(e.code==="Space"){e.preventDefault();$("playBtn").click();} if(e.code==="ArrowRight"&&e.ctrlKey)next(); if(e.code==="ArrowLeft"&&e.ctrlKey)prev(); });
 </script>
 </body>
