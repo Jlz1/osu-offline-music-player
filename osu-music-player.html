@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>osu! Music — Offline Player</title>
+<style>
+  :root{
+    --bg:#0b0d12; --bg2:#11141b; --panel:#161a23; --panel2:#1c212c;
+    --text:#eaeef6; --muted:#8b94a7; --accent:#ff6ba9; --accent2:#7c5cff;
+    --line:#232938; --green:#1ed760;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text)}
+  body{display:flex;flex-direction:column;overflow:hidden}
+  a{color:inherit}
+  .topbar{display:flex;align-items:center;gap:14px;padding:12px 20px;background:linear-gradient(90deg,#141826,#0d1018);border-bottom:1px solid var(--line);flex:0 0 auto}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:.3px}
+  .logo .dot{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ff8fc4,var(--accent));box-shadow:0 0 14px rgba(255,107,169,.6)}
+  .spacer{flex:1}
+  .btn{background:var(--accent);color:#1a0a12;border:0;padding:9px 16px;border-radius:999px;font-weight:700;cursor:pointer;font-size:13px;transition:.15s;white-space:nowrap}
+  .btn:hover{transform:scale(1.04);filter:brightness(1.08)}
+  .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--accent)}
+  .status{color:var(--muted);font-size:12.5px}
+  .search{flex:0 0 auto;padding:14px 20px 6px}
+  .search input{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:999px;font-size:14px;outline:none}
+  .search input:focus{border-color:var(--accent)}
+  .main{flex:1;overflow-y:auto;padding:6px 12px 140px}
+  .main::-webkit-scrollbar{width:10px}.main::-webkit-scrollbar-thumb{background:#2a3142;border-radius:6px}
+  .hint{max-width:560px;margin:8vh auto;text-align:center;color:var(--muted);line-height:1.7}
+  .hint h2{color:var(--text);font-weight:700}
+  .hint code{background:var(--panel2);padding:2px 7px;border-radius:6px;color:#ffd0e4}
+  .listhead{display:grid;grid-template-columns:42px 1fr 1fr 70px;gap:12px;padding:6px 14px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2}
+  .row{display:grid;grid-template-columns:42px 1fr 1fr 70px;gap:12px;align-items:center;padding:7px 14px;border-radius:8px;cursor:pointer}
+  .row:hover{background:var(--panel)}
+  .row.active{background:linear-gradient(90deg,rgba(255,107,169,.18),rgba(124,92,255,.10))}
+  .row.active .t-title{color:var(--accent)}
+  .cover{width:40px;height:40px;border-radius:6px;object-fit:cover;background:var(--panel2);flex:0 0 auto;display:block}
+  .idx{width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+  .cell{min-width:0}
+  .t-title{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .t-sub{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .t-artist{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#cdd4e2}
+  .dur{color:var(--muted);font-size:12.5px;text-align:right}
+  .playbar{position:fixed;left:0;right:0;bottom:0;height:90px;background:linear-gradient(180deg,#10131c,#0a0c11);border-top:1px solid var(--line);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 18px;z-index:5}
+  .np{display:flex;align-items:center;gap:12px;min-width:0}
+  .np img{width:56px;height:56px;border-radius:8px;object-fit:cover;background:var(--panel2)}
+  .np .meta{min-width:0}
+  .np .n-title{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .np .n-art{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .center{display:flex;flex-direction:column;align-items:center;gap:7px;width:min(520px,46vw)}
+  .ctrls{display:flex;align-items:center;gap:18px}
+  .icb{background:none;border:0;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:4px;transition:.15s}
+  .icb:hover{color:var(--text)}
+  .icb.on{color:var(--accent)}
+  .play{width:42px;height:42px;border-radius:50%;background:var(--text);color:#0b0d12;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .play:hover{transform:scale(1.06)}
+  .seek{display:flex;align-items:center;gap:10px;width:100%}
+  .seek .time{color:var(--muted);font-size:11px;width:38px;text-align:center;flex:0 0 auto}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:5px;border-radius:4px;background:#2c3346;outline:none;cursor:pointer}
+  input[type=range].bar{flex:1}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent)}
+  input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:4px}
+  .right{display:flex;align-items:center;justify-content:flex-end;gap:10px}
+  .vol{width:110px}
+  .count{color:var(--muted);font-size:12px;padding:4px 14px}
+  .loading{display:flex;align-items:center;gap:10px;color:var(--muted);padding:24px;justify-content:center}
+  .spin{width:18px;height:18px;border:2px solid #2c3346;border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo"><div class="dot"></div> osu! Music</div>
+    <div class="status" id="status">Not connected to your osu! folder</div>
+    <div class="spacer"></div>
+    <button class="btn ghost hidden" id="refreshBtn">↻ Refresh</button>
+    <button class="btn" id="openBtn">Open osu! folder</button>
+    <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden">
+  </div>
+  <div class="search"><input id="searchBox" placeholder="Search title, artist, source…" autocomplete="off"></div>
+  <div class="count" id="count"></div>
+  <div class="main" id="main">
+    <div class="hint" id="hint">
+      <h2>Offline osu! Music Player</h2>
+      <p>Click <b>Open osu! folder</b> and choose your osu! data folder<br>
+      (usually <code>C:\Users\…\AppData\Roaming\osu</code>).</p>
+      <p>This app reads directly from osu!'s database and plays audio from the <code>files</code> folder — without duplicating any songs. Add new maps in osu!, then click Refresh to update.</p>
+    </div>
+  </div>
+
+  <div class="playbar">
+    <div class="np">
+      <img id="npCover" alt="">
+      <div class="meta"><div class="n-title" id="npTitle">—</div><div class="n-art" id="npArtist"></div></div>
+    </div>
+    <div class="center">
+      <div class="ctrls">
+        <button class="icb" id="shuffleBtn" title="Shuffle">🔀</button>
+        <button class="icb" id="prevBtn" title="Previous">⏮</button>
+        <button class="icb play" id="playBtn" title="Play">▶</button>
+        <button class="icb" id="nextBtn" title="Next">⏭</button>
+        <button class="icb" id="repeatBtn" title="Repeat">🔁</button>
+      </div>
+      <div class="seek">
+        <span class="time" id="cur">0:00</span>
+        <input type="range" class="bar" id="seekBar" min="0" max="1000" value="0">
+        <span class="time" id="dur">0:00</span>
+      </div>
+    </div>
+    <div class="right">
+      <span class="icb" title="Volume">🔊</span>
+      <input type="range" class="vol" id="volBar" min="0" max="100" value="90">
+    </div>
+  </div>
+
+<script>
+/* ===== embedded realm parser ===== */
+// Pure-JS osu!lazer client.realm reader. Works in Node and browser.
+// parseLibrary(uint8, readOsuText) -> Promise<{count, tracks}>
+function makeReader(D) {
+  const FS = D.length;
+  const u8 = D;
+  function u(off, n) { // little-endian unsigned, n bytes (<=6 safe as Number)
+    let v = 0;
+    for (let i = n - 1; i >= 0; i--) v = v * 256 + u8[off + i];
+    return v;
+  }
+  function header(ref) {
+    const f = u8[ref + 4];
+    return {
+      inner: !!(f & 0x80), refs: !!(f & 0x40), ctx: !!(f & 0x20),
+      wtype: (f & 0x18) >> 3, width: (1 << (f & 7)) >> 1,
+      size: (u8[ref + 5] << 16) | (u8[ref + 6] << 8) | u8[ref + 7],
+    };
+  }
+  function ints(ref) {
+    const h = header(ref), n = h.size, w = h.width, b = ref + 8, out = new Array(n);
+    if (h.wtype === 1) { for (let i = 0; i < n; i++) out[i] = u(b + i * w, w); return out; }
+    if (w === 0) { out.fill(0); return out; }
+    if (w === 8 || w === 16 || w === 32 || w === 64) {
+      const s = w / 8;
+      for (let i = 0; i < n; i++) out[i] = u(b + i * s, s);
+      return out;
+    }
+    for (let i = 0; i < n; i++) { // sub-byte widths
+      const bit = i * w; let v = 0;
+      for (let k = 0; k < w; k++) { const bo = bit + k; v |= ((u8[b + (bo >> 3)] >> (bo & 7)) & 1) << k; }
+      out[i] = v;
+    }
+    return out;
+  }
+  function blobBytes(ref) {
+    const h = header(ref), n = h.size, w = h.width, b = ref + 8;
+    const len = (w === 8 || w === 16 || w === 32 || w === 64) ? n * (w / 8) : n;
+    return u8.subarray(b, b + len);
+  }
+  const dec = new TextDecoder("utf-8");
+  function rstripNul(bytes) { let e = bytes.length; while (e > 0 && bytes[e - 1] === 0) e--; return dec.decode(bytes.subarray(0, e)); }
+  function strCol(ref) {
+    const h = header(ref), n = h.size, w = h.width, b = ref + 8, out = new Array(n);
+    if (h.refs) {
+      const slots = ints(ref);
+      for (let i = 0; i < n; i++) {
+        const s = slots[i];
+        if (s === 0) out[i] = "";
+        else if (s % 8 === 0 && s < FS) out[i] = rstripNul(blobBytes(s));
+        else out[i] = null;
+      }
+      return out;
+    }
+    if (w === 0) { out.fill(""); return out; }
+    for (let i = 0; i < n; i++) {
+      const slot = u8.subarray(b + i * w, b + i * w + w);
+      const pad = slot[slot.length - 1];
+      const L = (pad >= 0 && pad <= w) ? w - pad : 0;
+      out[i] = rstripNul(slot.subarray(0, L));
+    }
+    return out;
+  }
+  function* walk(root, base = 0) {
+    const h = header(root);
+    if (!h.inner) { yield [base, root]; return; }
+    const el = ints(root);
+    const kids = [];
+    for (let i = 1; i < el.length; i++) { const v = el[i]; if (v % 8 === 0 && v > 8 && v < FS) kids.push(v); }
+    for (let j = 0; j < kids.length; j++) {
+      const c = kids[j];
+      if (header(c).inner) yield* walk(c, base + j * 256 * 256);
+      else yield [base + j * 256, c];
+    }
+  }
+  function colsOf(tableref) {
+    const top = ints(tableref), st = ints(top[0]);
+    const types = ints(st[0]), names = strCol(st[1]), keys = ints(st[5]);
+    const map = {}; let ni = 0;
+    for (let i = 0; i < types.length; i++) {
+      if (types[i] !== 14) { map[names[ni]] = [(keys[i] & 0xffff) + 1, types[i]]; ni++; }
+      else map["__bl" + i] = [(keys[i] & 0xffff) + 1, types[i]];
+    }
+    return [top, map];
+  }
+  function rows(tableref, want) {
+    const [top, cmap] = colsOf(tableref);
+    const res = new Map();
+    for (const [base, leaf] of walk(top[2])) {
+      const e = ints(leaf);
+      let rowcount = 0;
+      for (const nm in want) { const c = cmap[nm]; if (c && c[0] < e.length) rowcount = Math.max(rowcount, header(e[c[0]]).size); }
+      const kk = ints(e[0]);
+      const keys = (kk.length === rowcount) ? kk : Array.from({ length: rowcount }, (_, i) => i);
+      const coldata = {};
+      for (const nm in want) { const c = cmap[nm]; const lref = e[c[0]]; coldata[nm] = want[nm] === "str" ? strCol(lref) : ints(lref); }
+      for (let i = 0; i < rowcount; i++) {
+        const o = {};
+        for (const nm in want) o[nm] = i < coldata[nm].length ? coldata[nm][i] : null;
+        res.set(base + keys[i], o);
+      }
+    }
+    return [res, cmap];
+  }
+  return { header, ints, strCol, walk, rows, colsOf, FS };
+}
+
+function parseOsu(txt) {
+  let sec = null, audio = null, bg = null, title = null, tu = null, artist = null, au = null, src = null, tags = null;
+  for (const line of txt.split(/\r?\n/)) {
+    const s = line.trim();
+    if (s.startsWith("[") && s.endsWith("]")) { sec = s.slice(1, -1); continue; }
+    if (sec === "General" && /^audiofilename:/i.test(s)) audio = s.slice(s.indexOf(":") + 1).trim();
+    else if (sec === "Metadata" && s.includes(":")) {
+      const k = s.slice(0, s.indexOf(":")).trim(), v = s.slice(s.indexOf(":") + 1).trim();
+      if (k === "Title") title = v; else if (k === "TitleUnicode") tu = v;
+      else if (k === "Artist") artist = v; else if (k === "ArtistUnicode") au = v;
+      else if (k === "Source") src = v; else if (k === "Tags") tags = v;
+    } else if (sec === "Events") {
+      const p = s.split(",");
+      if (p.length >= 3 && (p[0] === "0" || p[0] === "Background") && s.includes('"')) {
+        const q = s.split('"'); if (q.length >= 2) bg = q[1];
+      }
+    }
+  }
+  return { audio, bg, title: tu || title, titleA: title, artist: au || artist, artistA: artist, source: src, tags };
+}
+
+async function parseLibrary(uint8, readOsuText) {
+  const R = makeReader(uint8);
+  const names = R.strCol(12504), tabs = R.ints(126472);
+  const T = {};
+  for (let i = 0; i < names.length; i++) T[names[i].replace(/\x00+$/, "")] = tabs[i];
+  const [File_t] = R.rows(T["class_File"], { Hash: "str" });
+  const [RNFU_t, rcmap] = R.rows(T["class_RealmNamedFileUsage"], { Filename: "str", File: "link", __bl2: "link", __bl3: "link", __bl4: "link" });
+  let set_bl = null;
+  for (const nm in rcmap) if (nm.startsWith("__bl") && rcmap[nm][0] === 1) set_bl = nm;
+  const hashOf = (fk) => { const r = File_t.get(fk - 1); return r ? r.Hash : null; };
+  const setfiles = new Map();
+  for (const [, r] of RNFU_t) {
+    const sk = r[set_bl], fn = r.Filename, h = hashOf(r.File);
+    if (sk && fn && h) { if (!setfiles.has(sk)) setfiles.set(sk, {}); setfiles.get(sk)[fn.toLowerCase()] = h; }
+  }
+  const tracks = []; const seen = new Set();
+  for (const [, fmap] of setfiles) {
+    const osu = Object.keys(fmap).filter((f) => f.endsWith(".osu"));
+    if (!osu.length) continue;
+    const txt = await readOsuText(fmap[osu[0]]);
+    if (!txt) continue;
+    const m = parseOsu(txt);
+    if (!m.audio) continue;
+    const ah = fmap[m.audio.toLowerCase()];
+    if (!ah || seen.has(ah)) continue;
+    seen.add(ah);
+    const bgh = m.bg ? fmap[m.bg.toLowerCase()] : null;
+    tracks.push({ title: m.title || "(unknown)", titleA: m.titleA || "", artist: m.artist || "(unknown)", artistA: m.artistA || "", source: m.source || "", tags: m.tags || "", audioHash: ah, coverHash: bgh || null });
+  }
+  tracks.sort((a, b) => (a.artist.toLowerCase() + a.title.toLowerCase()).localeCompare(b.artist.toLowerCase() + b.title.toLowerCase()));
+  return { count: tracks.length, tracks };
+}
+
+
+/* ===== app ===== */
+const $ = (id) => document.getElementById(id);
+let fileMap = new Map();     // "files/h/hh/hash" (lowercase) -> File
+let rootPrefix = "";
+let library = { tracks: [] };
+let view = [];               // filtered/ordered indices into library.tracks
+let curIdx = -1;
+let audio = new Audio();
+let curUrl = null, curCoverUrl = null;
+let shuffle = false, repeat = 0; // 0 off,1 all,2 one
+const coverUrls = new Map();  // track idx -> objectURL (lazy thumbs)
+
+function fmtTime(s){ if(!isFinite(s)||s<0)s=0; const m=Math.floor(s/60), ss=Math.floor(s%60); return m+":"+String(ss).padStart(2,"0"); }
+function lookup(hash){ if(!hash) return null; return fileMap.get("files/"+hash[0]+"/"+hash.slice(0,2)+"/"+hash) || null; }
+
+/* folder loading via webkitdirectory (works offline from file://) */
+$("openBtn").onclick = () => $("folderInput").click();
+$("refreshBtn").onclick = () => { if(fileMap.size) buildLibrary(); };
+$("folderInput").onchange = async (e) => {
+  const files = [...e.target.files];
+  if(!files.length) return;
+  let realmRel = null;
+  for(const f of files){ const rp=f.webkitRelativePath; if(rp.endsWith("/client.realm")||rp==="client.realm"){ realmRel=rp; break; } }
+  if(!realmRel){ alert("Could not find client.realm in that folder. Please choose your osu! data folder (the one containing client.realm and the files folder)."); return; }
+  rootPrefix = realmRel.slice(0, realmRel.length - "client.realm".length);
+  fileMap = new Map();
+  for(const f of files){ const rp=f.webkitRelativePath; if(rp.startsWith(rootPrefix)) fileMap.set(rp.slice(rootPrefix.length).toLowerCase(), f); }
+  await buildLibrary();
+};
+
+async function buildLibrary(){
+  $("hint").classList.add("hidden");
+  $("main").innerHTML = '<div class="loading"><div class="spin"></div> Reading osu! library…</div>';
+  $("status").textContent = "Processing…";
+  try{
+    const realm = fileMap.get("client.realm");
+    const u8 = new Uint8Array(await realm.arrayBuffer());
+    const readOsu = async (h) => { const f = lookup(h); return f ? await f.text() : null; };
+    library = await parseLibrary(u8, readOsu);
+    $("refreshBtn").classList.remove("hidden");
+    $("status").textContent = library.count + " songs • connected";
+    applyFilter();
+  }catch(err){
+    console.error(err);
+    $("main").innerHTML = '<div class="hint"><h2>Failed to read database</h2><p>'+(err.message||err)+'</p></div>';
+  }
+}
+
+/* rendering */
+const io = new IntersectionObserver((entries)=>{
+  for(const en of entries){
+    const el = en.target, idx = +el.dataset.idx;
+    if(en.isIntersecting) loadCover(idx, el.querySelector("img.cover"));
+  }
+},{root:$("main"),rootMargin:"200px"});
+
+async function loadCover(idx, img){
+  if(!img || img.dataset.loaded) return;
+  const t = library.tracks[idx]; if(!t.coverHash){ img.dataset.loaded=1; return; }
+  const f = lookup(t.coverHash); if(!f) return;
+  img.dataset.loaded=1;
+  const url = URL.createObjectURL(f); coverUrls.set(idx,url); img.src = url;
+}
+
+function applyFilter(){
+  const q = $("searchBox").value.trim().toLowerCase();
+  view = [];
+  library.tracks.forEach((t,i)=>{
+    if(!q || (t.title+" "+t.titleA+" "+t.artist+" "+t.artistA+" "+t.source+" "+t.tags).toLowerCase().includes(q)) view.push(i);
+  });
+  renderList();
+}
+
+function renderList(){
+  $("count").textContent = view.length + " songs";
+  // revoke offscreen cover urls to keep memory low
+  for(const [i,u] of coverUrls){ URL.revokeObjectURL(u); } coverUrls.clear();
+  const head = '<div class="listhead"><div>#</div><div>Title</div><div>Artist</div><div style="text-align:right">Source</div></div>';
+  const rows = view.map((i,pos)=>{
+    const t = library.tracks[i];
+    return '<div class="row'+(i===curIdx?' active':'')+'" data-idx="'+i+'" data-pos="'+pos+'">'
+      +'<div style="position:relative"><div class="idx">'+(pos+1)+'</div><img class="cover" style="display:none">'+'</div>'
+      +'<div class="cell"><div class="t-title">'+esc(t.title)+'</div><div class="t-sub">'+esc(t.titleA&&t.titleA!==t.title?t.titleA:"")+'</div></div>'
+      +'<div class="cell t-artist">'+esc(t.artist)+'</div>'
+      +'<div class="dur">'+esc(t.source||"")+'</div></div>';
+  }).join("");
+  $("main").innerHTML = head + rows;
+  // show cover instead of index, observe
+  document.querySelectorAll(".row").forEach(el=>{
+    const img = el.querySelector("img.cover"), idxNum = el.querySelector(".idx");
+    img.style.display="block"; idxNum.style.display="none";
+    io.observe(el);
+    el.onclick = ()=> playAt(+el.dataset.pos);
+  });
+}
+function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+/* playback */
+async function playAt(pos){
+  if(pos<0||pos>=view.length) return;
+  curIdx = view[pos];
+  const t = library.tracks[curIdx];
+  const f = lookup(t.audioHash);
+  if(!f){ alert("Audio file not found."); return; }
+  if(curUrl) URL.revokeObjectURL(curUrl);
+  curUrl = URL.createObjectURL(f);
+  audio.src = curUrl;
+  audio.play();
+  $("npTitle").textContent = t.title;
+  $("npArtist").textContent = t.artist;
+  if(curCoverUrl){ URL.revokeObjectURL(curCoverUrl); curCoverUrl=null; }
+  const cf = lookup(t.coverHash);
+  $("npCover").src = cf ? (curCoverUrl=URL.createObjectURL(cf)) : "";
+  document.querySelectorAll(".row").forEach(el=>el.classList.toggle("active", +el.dataset.idx===curIdx));
+  setPlayIcon(true);
+}
+function curPos(){ return view.indexOf(curIdx); }
+function next(){ if(!view.length) return; let p; if(shuffle){ p=Math.floor(Math.random()*view.length); } else { p=curPos()+1; if(p>=view.length) p=0; } playAt(p); }
+function prev(){ if(!view.length) return; if(audio.currentTime>3){ audio.currentTime=0; return; } let p=curPos()-1; if(p<0)p=view.length-1; playAt(p); }
+function setPlayIcon(playing){ $("playBtn").textContent = playing ? "⏸" : "▶"; }
+
+$("playBtn").onclick = ()=>{ if(curIdx<0){ if(view.length) playAt(0); return; } if(audio.paused) audio.play(); else audio.pause(); };
+$("nextBtn").onclick = next;
+$("prevBtn").onclick = prev;
+$("shuffleBtn").onclick = ()=>{ shuffle=!shuffle; $("shuffleBtn").classList.toggle("on",shuffle); };
+$("repeatBtn").onclick = ()=>{ repeat=(repeat+1)%3; const b=$("repeatBtn"); b.classList.toggle("on",repeat>0); b.textContent = repeat===2?"🔂":"🔁"; b.title = ["Repeat: off","Repeat all","Repeat one"][repeat]; };
+audio.onplay = ()=>setPlayIcon(true);
+audio.onpause = ()=>setPlayIcon(false);
+audio.onended = ()=>{ if(repeat===2){ audio.currentTime=0; audio.play(); } else next(); };
+audio.ontimeupdate = ()=>{ $("cur").textContent=fmtTime(audio.currentTime); if(audio.duration){ $("seekBar").value = (audio.currentTime/audio.duration)*1000; } };
+audio.onloadedmetadata = ()=>{ $("dur").textContent=fmtTime(audio.duration); };
+$("seekBar").oninput = (e)=>{ if(audio.duration) audio.currentTime = (e.target.value/1000)*audio.duration; };
+$("volBar").oninput = (e)=>{ audio.volume = e.target.value/100; };
+audio.volume = 0.9;
+$("searchBox").oninput = ()=>applyFilter();
+document.addEventListener("keydown",(e)=>{ if(e.target.tagName==="INPUT")return; if(e.code==="Space"){e.preventDefault();$("playBtn").click();} if(e.code==="ArrowRight"&&e.ctrlKey)next(); if(e.code==="ArrowLeft"&&e.ctrlKey)prev(); });
+</script>
+</body>
+</html>
