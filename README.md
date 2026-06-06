@@ -9,6 +9,7 @@ A lightweight, single-file web app that turns your **osu!lazer** song library in
 - 🎵 **Offline playback** straight from osu!lazer's own storage
 - 🔄 **Auto-updates** — reads osu!'s live database each time you open it. Add maps in osu!, hit **Refresh**, and they appear
 - 💾 **Zero duplication** — never copies your songs; streams them directly from osu!'s `files/` folder
+- 🚫 **Ad-free** — no ads, no tracking, no telemetry, ever
 - 🔎 **Search** by title, artist, or source
 - 🎨 **Cover art** pulled from each beatmap's background
 - ⏯️ Play/pause, next/previous, shuffle, repeat (all/one), seek, volume
@@ -35,7 +36,7 @@ osu!lazer doesn't store songs in normal folders — it uses a content-addressed 
 
 ## Privacy
 
-100% offline. No data ever leaves your computer — no servers, no telemetry, no network calls. The app only reads your local osu! files.
+100% offline and **completely ad-free**. No data ever leaves your computer — no servers, no telemetry, no network calls, and no advertisements anywhere in the app. It only reads your local osu! files.
 
 ## Credits
 
