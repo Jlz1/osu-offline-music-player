@@ -116,9 +116,9 @@
     <button class="btn ghost hidden" id="refreshBtn">↻ Refresh</button>
     <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden">
   </div>
-  <div class="search"><input id="searchBox" placeholder="Search title, artist, source…" autocomplete="off"></div>
-  <div class="groupbar"><span class="glabel">Group by:</span><button class="gpill on" data-g="none">None</button><button class="gpill" data-g="artist">Artist</button><button class="gpill" data-g="source">Source</button></div>
-  <div class="count" id="count"></div>
+  <div class="search hidden" id="searchRow"><input id="searchBox" placeholder="Search title, artist, source…" autocomplete="off"></div>
+  <div class="groupbar hidden" id="groupbar"><span class="glabel">Group by:</span><button class="gpill on" data-g="none">None</button><button class="gpill" data-g="artist">Artist</button><button class="gpill" data-g="source">Source</button></div>
+  <div class="count hidden" id="count"></div>
   <div class="content">
   <div class="main" id="main">
     <div class="hint" id="hint">
@@ -378,6 +378,9 @@ async function buildLibrary(){
     library = await parseLibrary(u8, readOsu);
     $("refreshBtn").classList.remove("hidden");
     $("status").textContent = library.count + " songs • connected";
+    $("searchRow").classList.remove("hidden");
+    $("groupbar").classList.remove("hidden");
+    $("count").classList.remove("hidden");
     applyFilter();
   }catch(err){
     console.error(err);
