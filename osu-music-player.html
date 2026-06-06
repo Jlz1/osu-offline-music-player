@@ -125,6 +125,7 @@
       <h2>Offline osu! Music Player</h2>
       <p>Play your osu!lazer library offline — your songs aren't copied, and there are no ads.</p>
       <button class="btn big" id="openBtn">Open osu! folder</button>
+      <p class="hint-sm err hidden" id="hintErr"></p>
       <p class="hint-sm">Choose your osu! data folder (usually <code>%appdata%\osu</code>) — the one containing <code>client.realm</code> and the <code>files</code> folder.</p>
     </div>
   </div>
@@ -360,13 +361,18 @@ $("folderInput").onchange = async (e) => {
   if(!files.length) return;
   let realmRel = null;
   for(const f of files){ const rp=f.webkitRelativePath; if(rp.endsWith("/client.realm")||rp==="client.realm"){ realmRel=rp; break; } }
-  if(!realmRel){ alert("Could not find client.realm in that folder. Please choose your osu! data folder (the one containing client.realm and the files folder)."); return; }
+  if(!realmRel){ showFolderError("That folder doesn't contain an osu!lazer database (client.realm). Please choose your osu! data folder — usually %appdata%\\osu — not the osu! program folder."); return; }
   rootPrefix = realmRel.slice(0, realmRel.length - "client.realm".length);
   fileMap = new Map();
   for(const f of files){ const rp=f.webkitRelativePath; if(rp.startsWith(rootPrefix)) fileMap.set(rp.slice(rootPrefix.length).toLowerCase(), f); }
   await buildLibrary();
 };
 
+function showFolderError(msg){
+  $("hint").classList.remove("hidden");
+  const e=$("hintErr"); e.textContent=msg; e.classList.remove("hidden");
+  ["searchRow","groupbar","count"].forEach(id=>$(id).classList.add("hidden"));
+}
 async function buildLibrary(){
   $("hint").classList.add("hidden");
   $("main").innerHTML = '<div class="loading"><div class="spin"></div> Reading osu! library…</div>';
