@@ -98,9 +98,9 @@
   .q-item .qx{background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer;opacity:0;padding:2px 6px;border-radius:6px}
   .q-item:hover .qx{opacity:1}
   .q-item .qx:hover{color:var(--accent)}
-  .addq{position:absolute;right:10px;top:50%;transform:translateY(-50%);opacity:0;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:999px;font-size:11px;padding:3px 10px;cursor:pointer;transition:.12s}
-  .row:hover .addq{opacity:1}
-  .addq:hover{border-color:var(--accent);color:var(--accent)}
+  .ctxmenu{position:fixed;z-index:60;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px;box-shadow:0 12px 34px rgba(0,0,0,.55);min-width:170px}
+  .ctxmenu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;cursor:pointer}
+  .ctxmenu button:hover{background:var(--accent);color:#1a0a12}
   .hidden{display:none!important}
 </style>
 </head>
@@ -159,6 +159,11 @@
       <button class="icb" id="volIcon" title="Mute / unmute">🔊</button>
       <input type="range" class="vol" id="volBar" min="0" max="100" value="90">
     </div>
+  </div>
+
+<div class="ctxmenu hidden" id="ctxMenu">
+    <button data-act="play">▶  Play</button>
+    <button data-act="queue">＋  Add to queue</button>
   </div>
 
 <script>
@@ -407,7 +412,7 @@ function rowHtml(i,pos){
     +'<div style="position:relative"><div class="idx">'+(pos+1)+'</div><img class="cover" style="display:none"></div>'
     +'<div class="cell"><div class="t-title">'+esc(t.title)+'</div><div class="t-sub">'+esc(t.titleA&&t.titleA!==t.title?t.titleA:"")+'</div></div>'
     +'<div class="cell t-artist">'+esc(t.artist)+'</div>'
-    +'<div class="dur">'+esc(t.source||"")+'</div>'+'<button class="addq" title="Add to queue">+ Queue</button></div>';
+    +'<div class="dur">'+esc(t.source||"")+'</div></div>';
 }
 function orderedView(){
   if(groupBy==="none") return {order:view.slice(), groups:null};
@@ -442,7 +447,7 @@ function renderList(){
     img.style.display="block"; idxNum.style.display="none";
     io.observe(el);
     el.onclick = ()=> playAt(+el.dataset.pos);
-    const aq=el.querySelector(".addq"); if(aq) aq.onclick=(e)=>{ e.stopPropagation(); addToQueue(+el.dataset.idx); };
+    el.oncontextmenu = (e)=>{ e.preventDefault(); showCtx(e.clientX, e.clientY, +el.dataset.idx); };
   });
 }
 function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
@@ -518,6 +523,13 @@ audio.volume = 0.9; updateVolIcon();
 $("searchBox").oninput = ()=>applyFilter();
 $("panelBtn").onclick=()=>{ const sp=$("sidepanel"); const open=sp.classList.contains("hidden"); sp.classList.toggle("hidden"); panelClosed=!open; $("panelBtn").classList.toggle("on",open); };
 $("spClose").onclick=()=>{ $("sidepanel").classList.add("hidden"); panelClosed=true; $("panelBtn").classList.remove("on"); };
+let ctxTrack=-1;
+function showCtx(x,y,i){ ctxTrack=i; const m=$("ctxMenu"); m.classList.remove("hidden"); m.style.left=Math.min(x, window.innerWidth-m.offsetWidth-8)+"px"; m.style.top=Math.min(y, window.innerHeight-m.offsetHeight-8)+"px"; }
+function hideCtx(){ $("ctxMenu").classList.add("hidden"); }
+$("ctxMenu").addEventListener("click",(e)=>{ const b=e.target.closest("button"); if(!b) return; if(b.dataset.act==="queue") addToQueue(ctxTrack); else { const p=view.indexOf(ctxTrack); if(p>=0) playAt(p); else playTrack(ctxTrack); } hideCtx(); });
+document.addEventListener("click",hideCtx);
+document.addEventListener("scroll",hideCtx,true);
+window.addEventListener("blur",hideCtx);
 document.querySelectorAll(".gpill").forEach(b=>{ b.onclick=()=>{ groupBy=b.dataset.g; document.querySelectorAll(".gpill").forEach(x=>x.classList.toggle("on",x===b)); applyFilter(); }; });
 document.addEventListener("keydown",(e)=>{ if(e.target.tagName==="INPUT")return; if(e.code==="Space"){e.preventDefault();$("playBtn").click();} if(e.code==="ArrowRight"&&e.ctrlKey)next(); if(e.code==="ArrowLeft"&&e.ctrlKey)prev(); });
 </script>
