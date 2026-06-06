@@ -31,6 +31,9 @@
   .hint{max-width:560px;margin:8vh auto;text-align:center;color:var(--muted);line-height:1.7}
   .hint h2{color:var(--text);font-weight:700}
   .hint code{background:var(--panel2);padding:2px 7px;border-radius:6px;color:#ffd0e4}
+  .btn.big{font-size:15px;padding:13px 28px;margin:20px 0 16px}
+  .hint-sm{font-size:13px;color:var(--muted);max-width:440px;margin:0 auto}
+  .hint .err{color:#ff7a7a;font-weight:600;min-height:0}
   .listhead{display:grid;grid-template-columns:42px 1fr 1fr 70px;gap:12px;padding:6px 14px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2}
   .row{position:relative;display:grid;grid-template-columns:42px 1fr 1fr 70px;gap:12px;align-items:center;padding:7px 14px;border-radius:8px;cursor:pointer}
   .row:hover{background:var(--panel)}
@@ -111,7 +114,6 @@
     <div class="status" id="status">Not connected to your osu! folder</div>
     <div class="spacer"></div>
     <button class="btn ghost hidden" id="refreshBtn">↻ Refresh</button>
-    <button class="btn" id="openBtn">Open osu! folder</button>
     <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden">
   </div>
   <div class="search"><input id="searchBox" placeholder="Search title, artist, source…" autocomplete="off"></div>
@@ -121,9 +123,9 @@
   <div class="main" id="main">
     <div class="hint" id="hint">
       <h2>Offline osu! Music Player</h2>
-      <p>Click <b>Open osu! folder</b> and choose your osu! data folder<br>
-      (usually <code>%appdata%\osu</code>).</p>
-      <p>This app reads directly from osu!'s database and plays audio from the <code>files</code> folder — without duplicating any songs. Add new maps in osu!, then click Refresh to update.</p>
+      <p>Play your osu!lazer library offline — your songs aren't copied, and there are no ads.</p>
+      <button class="btn big" id="openBtn">Open osu! folder</button>
+      <p class="hint-sm">Choose your osu! data folder (usually <code>%appdata%\osu</code>) — the one containing <code>client.realm</code> and the <code>files</code> folder.</p>
     </div>
   </div>
   <aside class="sidepanel hidden" id="sidepanel">
