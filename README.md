@@ -20,6 +20,25 @@ A lightweight, single-file web app that turns your **osu!lazer** song library in
 
 osu!lazer doesn't store songs in normal folders — it uses a content-addressed `files/` store plus a Realm database (`client.realm`). This app includes a **from-scratch JavaScript reader for the Realm file format**: it parses the database to map each song to its audio and cover files, reads metadata from the `.osu` beatmap files, and plays the audio directly. Everything runs locally in your browser.
 
+## Get it
+
+**Just want to use it (no coding):**
+
+1. On the repo page, click the green **Code** button → **Download ZIP**.
+2. Unzip it anywhere (your Desktop is fine).
+3. Double-click **`osu-music-player.html`** — it opens in your browser. That's it.
+
+> Prefer a single file? Open `osu-music-player.html` in the repo and click the download (⬇) button to grab just that file.
+
+**For developers — clone with Git:**
+
+```bash
+git clone https://github.com/Jlz1/osu-offline-music-player.git
+cd osu-offline-music-player
+```
+
+Then open **`osu-music-player.html`** in Chrome or Edge — double-click it, or on Windows run `start osu-music-player.html`. There's no build step and no dependencies; it's a single static HTML file.
+
 ## Usage
 
 1. Open `osu-music-player.html` in **Google Chrome** or **Microsoft Edge**.
@@ -41,6 +60,12 @@ osu!lazer doesn't store songs in normal folders — it uses a content-addressed 
 ## Credits
 
 Built by **Jeremy ([@Jlz1](https://github.com/Jlz1))**, co-authored with **Claude** (Anthropic).
+
+## Disclaimer
+
+This is an unofficial, fan-made tool and is **not affiliated with, endorsed by, or connected to osu! or ppy Pty Ltd.** "osu!" is a trademark of its respective owner.
+
+The app ships with no game code, beatmaps, or audio — it only reads files already on your own computer. You're free to use, modify, and share **the app itself** under the MIT license. Please **do not redistribute the songs/audio** played through it; those belong to their respective copyright holders.
 
 ## License
 
