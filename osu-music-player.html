@@ -488,7 +488,7 @@ function renderQueue(){
   let html='';
   if(queue.length) html+='<div class="q-sec"><h4>Next in queue</h4>'+queue.map((i,qp)=>qItem(i,true,qp)).join('')+'</div>';
   const cp=curPos(); const up=[];
-  if(cp>=0){ for(let p=cp+1; p<view.length && up.length<40; p++) up.push(view[p]); }
+  if(cp>=0 && cp+1<view.length) up.push(view[cp+1]);
   if(up.length) html+='<div class="q-sec"><h4>Next up</h4>'+up.map(i=>qItem(i,false)).join('')+'</div>';
   if(!html) html='<div class="q-sec"><h4>Queue</h4><div style="color:var(--muted);font-size:12px">Nothing queued yet. Hover a song and click + Queue.</div></div>';
   w.innerHTML=html;
