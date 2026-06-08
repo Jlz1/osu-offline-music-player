@@ -301,7 +301,13 @@ function parseOsu(txt) {
 
 async function parseLibrary(uint8, readOsuText) {
   const R = makeReader(uint8);
-  const names = R.strCol(12504), tabs = R.ints(126472);
+  // Read the realm group header dynamically (offsets differ per database file).
+  const ru = (off, n) => { let v = 0; for (let i = n - 1; i >= 0; i--) v = v * 256 + uint8[off + i]; return v; };
+  const sel = uint8[23] & 1; // header flag: which of the two top-refs is current
+  const readGroup = (ref) => { const gt = R.ints(ref); return { names: R.strCol(gt[0]), tabs: R.ints(gt[1]) }; };
+  let g = readGroup(sel ? ru(8, 8) : ru(0, 8));
+  if (!g.names.some(n => n.replace(/\x00+$/, "") === "class_BeatmapSet")) g = readGroup(sel ? ru(0, 8) : ru(8, 8));
+  const names = g.names, tabs = g.tabs;
   const T = {};
   for (let i = 0; i < names.length; i++) T[names[i].replace(/\x00+$/, "")] = tabs[i];
   const [File_t] = R.rows(T["class_File"], { Hash: "str" });
