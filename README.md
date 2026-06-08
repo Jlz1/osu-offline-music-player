@@ -46,6 +46,8 @@ Then open **`osu-music-player.html`** in Chrome or Edge — double-click it, or 
 3. When the browser asks to *"Upload"* the folder, confirm. Nothing is uploaded anywhere — that's just Chrome's wording for local read access.
 4. Your library appears. Click any track to play.
 
+> **Can't find the folder?** In osu!lazer, go to **Settings &rarr; Open osu! folder** — it opens the exact location, even if you moved it. osu! *stable* is **not** supported (it has no `client.realm`).
+
 > **Tip:** After adding new maps in osu!, just click **Refresh** to update the library.
 
 ## Requirements

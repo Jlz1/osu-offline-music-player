@@ -127,6 +127,7 @@
       <button class="btn big" id="openBtn">Open osu! folder</button>
       <p class="hint-sm err hidden" id="hintErr"></p>
       <p class="hint-sm">Copy <code>%appdata%\osu</code>, paste it into the address bar at the top, press <b>Enter</b>, then click <b>Upload</b>.</p>
+      <p class="hint-sm">Works with <b>osu!lazer</b> only. Not sure where your folder is? In osu!lazer: <b>Settings &rarr; Open osu! folder</b>.</p>
     </div>
   </div>
   <aside class="sidepanel hidden" id="sidepanel">
@@ -396,7 +397,12 @@ async function buildLibrary(){
     applyFilter();
   }catch(err){
     console.error(err);
-    $("main").innerHTML = '<div class="hint"><h2>Failed to read database</h2><p>'+(err.message||err)+'</p></div>';
+    $("main").innerHTML = '<div class="hint"><h2>Could not read the osu! database</h2>'
+      + '<p class="hint-sm">Make sure you selected your <b>osu!lazer</b> data folder — the one containing <code>client.realm</code>. osu! <i>stable</i> is not supported.</p>'
+      + '<p class="hint-sm">Not sure where it is? In osu!lazer: <b>Settings &rarr; Open osu! folder</b>.</p>'
+      + '<button class="btn big" id="openBtn2">Open osu! folder</button></div>';
+    ["searchRow","groupbar","count"].forEach(id=>$(id).classList.add("hidden"));
+    $("openBtn2").onclick = ()=> $("folderInput").click();
   }
 }
 
