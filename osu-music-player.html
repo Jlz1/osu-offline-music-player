@@ -180,6 +180,7 @@
 <div class="ctxmenu hidden" id="ctxMenu">
     <button data-act="play">▶  Play</button>
     <button data-act="queue">＋  Add to queue</button>
+    <button data-act="remove">🗑  Remove from list</button>
   </div>
 
 <script>
@@ -362,6 +363,7 @@ let exactFilter = null;      // {type:"artist"|"source", value} — click-to-fil
 let sortBy = "az";           // "az" | "added"
 let panelClosed = false;     // user explicitly closed the side panel
 let queue = [];              // manually queued track indices
+const removed = new Set();    // track indices hidden from the list this session
 let queueCoverUrls = [];     // object URLs for queue thumbnails (revoked on re-render)
 let curIdx = -1;
 let audio = new Audio();
@@ -439,6 +441,7 @@ function applyFilter(){
   const q = $("searchBox").value.trim().toLowerCase();
   view = [];
   library.tracks.forEach((t,i)=>{
+    if(removed.has(i)) return;
     if(exactFilter){ const fv=((exactFilter.type==="artist"?t.artist:t.source)||"").toLowerCase(); if(fv!==exactFilter.value.toLowerCase()) return; }
     if(q && !(t.title+" "+t.titleA+" "+t.artist+" "+t.artistA+" "+t.source+" "+t.tags).toLowerCase().includes(q)) return;
     view.push(i);
@@ -582,9 +585,16 @@ $("spClose").onclick=()=>{ showPanel(false); panelClosed=true; };
   window.addEventListener("mouseup",()=>{ if(dragging){ dragging=false; document.body.style.userSelect=""; } });
 })();
 let ctxTrack=-1;
+function removeFromLibrary(i){
+  const t=library.tracks[i]; if(!t) return;
+  if(!confirm("Remove \"" + (t.artist + " - " + t.title) + "\" from the list?\n\nThis only hides it in this app for now — it does NOT delete the file from osu!.")) return;
+  removed.add(i);
+  queue = queue.filter(x => x !== i);
+  applyFilter();
+}
 function showCtx(x,y,i){ ctxTrack=i; const m=$("ctxMenu"); m.classList.remove("hidden"); m.style.left=Math.min(x, window.innerWidth-m.offsetWidth-8)+"px"; m.style.top=Math.min(y, window.innerHeight-m.offsetHeight-8)+"px"; }
 function hideCtx(){ $("ctxMenu").classList.add("hidden"); }
-$("ctxMenu").addEventListener("click",(e)=>{ const b=e.target.closest("button"); if(!b) return; if(b.dataset.act==="queue") addToQueue(ctxTrack); else { const p=view.indexOf(ctxTrack); if(p>=0) playAt(p); else playTrack(ctxTrack); } hideCtx(); });
+$("ctxMenu").addEventListener("click",(e)=>{ const b=e.target.closest("button"); if(!b) return; const act=b.dataset.act; hideCtx(); if(act==="queue") addToQueue(ctxTrack); else if(act==="remove") removeFromLibrary(ctxTrack); else { const p=view.indexOf(ctxTrack); if(p>=0) playAt(p); else playTrack(ctxTrack); } });
 document.addEventListener("click",hideCtx);
 document.addEventListener("scroll",hideCtx,true);
 window.addEventListener("blur",hideCtx);
