@@ -45,8 +45,13 @@
   .cell{min-width:0}
   .t-title{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .t-sub{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .t-artist{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#cdd4e2}
-  .dur{color:var(--muted);font-size:12.5px;text-align:right}
+  .t-artist{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#cdd4e2}
+  .dur{color:var(--muted);font-size:13.5px;text-align:right}
+  .lnk{cursor:pointer}
+  .lnk:hover{color:var(--accent);text-decoration:underline}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:rgba(255,107,169,.18);color:var(--text);border:1px solid rgba(255,107,169,.45);padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer}
+  .chip b{color:var(--muted);font-weight:700}
+  .chip:hover b{color:var(--accent)}
   .playbar{position:fixed;left:0;right:0;bottom:0;height:90px;background:linear-gradient(180deg,#10131c,#0a0c11);border-top:1px solid var(--line);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 18px;z-index:5}
   .np{display:flex;align-items:center;gap:12px;min-width:0}
   .np img{width:56px;height:56px;border-radius:8px;object-fit:cover;background:var(--panel2)}
@@ -118,7 +123,7 @@
     <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden">
   </div>
   <div class="search hidden" id="searchRow"><input id="searchBox" placeholder="Search title, artist, source…" autocomplete="off"></div>
-  <div class="groupbar hidden" id="groupbar"><span class="glabel">Group by:</span><button class="gpill on" data-g="none">None</button><button class="gpill" data-g="artist">Artist</button><button class="gpill" data-g="source">Source</button></div>
+  <div class="groupbar hidden" id="groupbar"><span class="glabel">Group by:</span><button class="gpill on" data-g="none">None</button><button class="gpill" data-g="artist">Artist</button><button class="gpill" data-g="source">Source</button><span class="chip hidden" id="filterChip"></span></div>
   <div class="count hidden" id="count"></div>
   <div class="content">
   <div class="main" id="main">
@@ -348,6 +353,7 @@ let rootPrefix = "";
 let library = { tracks: [] };
 let view = [];               // filtered/ordered indices into library.tracks
 let groupBy = "none";       // "none" | "artist" | "source"
+let exactFilter = null;      // {type:"artist"|"source", value} — click-to-filter
 let panelClosed = false;     // user explicitly closed the side panel
 let queue = [];              // manually queued track indices
 let queueCoverUrls = [];     // object URLs for queue thumbnails (revoked on re-render)
@@ -427,19 +433,24 @@ function applyFilter(){
   const q = $("searchBox").value.trim().toLowerCase();
   view = [];
   library.tracks.forEach((t,i)=>{
-    if(!q || (t.title+" "+t.titleA+" "+t.artist+" "+t.artistA+" "+t.source+" "+t.tags).toLowerCase().includes(q)) view.push(i);
+    if(exactFilter){ const fv=((exactFilter.type==="artist"?t.artist:t.source)||"").toLowerCase(); if(fv!==exactFilter.value.toLowerCase()) return; }
+    if(q && !(t.title+" "+t.titleA+" "+t.artist+" "+t.artistA+" "+t.source+" "+t.tags).toLowerCase().includes(q)) return;
+    view.push(i);
   });
+  renderChip();
   renderList();
   renderQueue();
 }
+function renderChip(){ const c=$("filterChip"); if(exactFilter){ c.innerHTML=esc(exactFilter.type==="artist"?"Artist":"Source")+": "+esc(exactFilter.value)+" <b>\u2715</b>"; c.classList.remove("hidden"); } else c.classList.add("hidden"); }
+function setExactFilter(type,value){ exactFilter={type,value}; $("searchBox").value=""; applyFilter(); }
 
 function rowHtml(i,pos){
   const t = library.tracks[i];
   return '<div class="row'+(i===curIdx?' active':'')+'" data-idx="'+i+'" data-pos="'+pos+'">'
     +'<div style="position:relative"><div class="idx">'+(pos+1)+'</div><img class="cover" style="display:none"></div>'
     +'<div class="cell"><div class="t-title">'+esc(t.title)+'</div><div class="t-sub">'+esc(t.titleA&&t.titleA!==t.title?t.titleA:"")+'</div></div>'
-    +'<div class="cell t-artist">'+esc(t.artist)+'</div>'
-    +'<div class="dur">'+esc(t.source||"")+'</div></div>';
+    +'<div class="cell t-artist"><span class="lnk" data-f="artist">'+esc(t.artist)+'</span></div>'
+    +'<div class="dur">'+(t.source?'<span class="lnk" data-f="source">'+esc(t.source)+'</span>':'')+'</div></div>';
 }
 function orderedView(){
   if(groupBy==="none") return {order:view.slice(), groups:null};
@@ -475,6 +486,7 @@ function renderList(){
     io.observe(el);
     el.onclick = ()=> playAt(+el.dataset.pos);
     el.oncontextmenu = (e)=>{ e.preventDefault(); showCtx(e.clientX, e.clientY, +el.dataset.idx); };
+    el.querySelectorAll(".lnk").forEach(ln=>ln.onclick=(e)=>{ e.stopPropagation(); const t=library.tracks[+el.dataset.idx]; setExactFilter(ln.dataset.f, ln.dataset.f==="artist"?t.artist:t.source); });
   });
 }
 function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
@@ -553,6 +565,7 @@ $("volBar").oninput = (e)=>{ audio.volume = e.target.value/100; audio.muted=fals
 $("volIcon").onclick = ()=>{ audio.muted = !audio.muted; if(!audio.muted && audio.volume===0){ audio.volume=0.5; } $("volBar").value = audio.muted ? 0 : Math.round(audio.volume*100); updateVolIcon(); fillRange($("volBar")); };
 audio.volume = 0.9; updateVolIcon(); fillRange($("volBar"));
 $("searchBox").oninput = ()=>applyFilter();
+$("filterChip").onclick = ()=>{ exactFilter=null; applyFilter(); };
 $("panelBtn").onclick=()=>{ const sp=$("sidepanel"); const open=sp.classList.contains("hidden"); sp.classList.toggle("hidden"); panelClosed=!open; $("panelBtn").classList.toggle("on",open); };
 $("spClose").onclick=()=>{ $("sidepanel").classList.add("hidden"); panelClosed=true; $("panelBtn").classList.remove("on"); };
 let ctxTrack=-1;
