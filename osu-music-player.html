@@ -518,8 +518,11 @@ async function playTrack(i){
   const cu = cf ? (curCoverUrl=URL.createObjectURL(cf)) : "";
   $("npCover").src = cu; $("npArt").src = cu;
   $("npTitle").textContent = t.title; $("npArtist").textContent = t.artist;
-  $("npBigTitle").textContent = t.title; $("npBigArtist").textContent = t.artist;
-  $("npBigSrc").textContent = t.source ? ("Source: "+t.source) : "";
+  $("npBigTitle").textContent = t.title;
+  $("npBigArtist").innerHTML = '<span class="lnk">'+esc(t.artist)+'</span>';
+  $("npBigArtist").firstChild.onclick = ()=> setExactFilter("artist", t.artist);
+  if(t.source){ $("npBigSrc").innerHTML = 'Source: <span class="lnk">'+esc(t.source)+'</span>'; $("npBigSrc").querySelector(".lnk").onclick = ()=> setExactFilter("source", t.source); }
+  else $("npBigSrc").textContent = "";
   document.querySelectorAll(".row").forEach(el=>el.classList.toggle("active", +el.dataset.idx===curIdx));
   $("seekBar").value=0; fillRange($("seekBar"));
   setPlayIcon(true);
