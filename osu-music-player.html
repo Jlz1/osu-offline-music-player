@@ -364,6 +364,7 @@ let sortBy = "az";           // "az" | "added"
 let panelClosed = false;     // user explicitly closed the side panel
 let queue = [];              // manually queued track indices
 const removed = new Set();    // track indices hidden from the list this session
+let advanceTimer = null;     // pending 2s auto-advance timer
 let queueCoverUrls = [];     // object URLs for queue thumbnails (revoked on re-render)
 let curIdx = -1;
 let audio = new Audio();
@@ -503,6 +504,7 @@ function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">
 
 /* playback */
 async function playTrack(i){
+  if(advanceTimer){ clearTimeout(advanceTimer); advanceTimer=null; }
   curIdx = i;
   const t = library.tracks[i];
   const f = lookup(t.audioHash);
@@ -563,7 +565,7 @@ $("shuffleBtn").onclick = ()=>{ shuffle=!shuffle; $("shuffleBtn").classList.togg
 $("repeatBtn").onclick = ()=>{ repeat=(repeat+1)%3; const b=$("repeatBtn"); b.classList.toggle("on",repeat>0); b.textContent = repeat===2?"🔂":"🔁"; b.title = ["Repeat: off","Repeat all","Repeat one"][repeat]; };
 audio.onplay = ()=>setPlayIcon(true);
 audio.onpause = ()=>setPlayIcon(false);
-audio.onended = ()=>{ if(repeat===2){ audio.currentTime=0; audio.play(); } else next(); };
+audio.onended = ()=>{ if(repeat===2){ audio.currentTime=0; audio.play(); } else { advanceTimer=setTimeout(()=>{ advanceTimer=null; next(); }, 2000); } };
 audio.ontimeupdate = ()=>{ $("cur").textContent=fmtTime(audio.currentTime); if(audio.duration){ $("seekBar").value = (audio.currentTime/audio.duration)*1000; } fillRange($("seekBar")); };
 audio.onloadedmetadata = ()=>{ $("dur").textContent=fmtTime(audio.duration); };
 $("seekBar").oninput = (e)=>{ if(audio.duration) audio.currentTime = (e.target.value/1000)*audio.duration; fillRange(e.target); };
