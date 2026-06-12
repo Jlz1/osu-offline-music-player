@@ -91,6 +91,9 @@
   .grouphdr span{color:var(--text);font-weight:400;font-size:15px}
   .content{flex:1;display:flex;min-height:0}
   .sidepanel{width:340px;flex:0 0 340px;border-left:1px solid var(--line);background:var(--bg2);overflow-y:auto;padding:20px 16px 130px}
+  .sp-resize{flex:0 0 6px;cursor:ew-resize;background:transparent;transition:background .15s}
+  .sp-resize:hover{background:var(--accent)}
+  .sp-resize.hidden{display:none}
   .sidepanel::-webkit-scrollbar{width:10px}.sidepanel::-webkit-scrollbar-thumb{background:#2a3142;border-radius:6px}
   .sp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
   .sp-head h3{margin:0;font-size:15px;font-weight:700}
@@ -137,6 +140,7 @@
       <p class="hint-sm">Works with <b>osu!lazer</b> only. Not sure where your folder is? In osu!lazer: <b>Settings &rarr; Open osu! folder</b>.</p>
     </div>
   </div>
+  <div class="sp-resize hidden" id="spResize" title="Drag to resize"></div>
   <aside class="sidepanel hidden" id="sidepanel">
     <div class="sp-head"><h3>Now Playing</h3><button class="icb" id="spClose" title="Close">✕</button></div>
     <img class="np-art" id="npArt" alt="">
@@ -514,11 +518,11 @@ async function playTrack(i){
   document.querySelectorAll(".row").forEach(el=>el.classList.toggle("active", +el.dataset.idx===curIdx));
   $("seekBar").value=0; fillRange($("seekBar"));
   setPlayIcon(true);
-  if(!panelClosed){ $("sidepanel").classList.remove("hidden"); $("panelBtn").classList.add("on"); }
+  if(!panelClosed){ showPanel(true); }
   renderQueue();
 }
 async function playAt(pos){ if(pos<0||pos>=view.length) return; playTrack(view[pos]); }
-function addToQueue(i){ queue.push(i); if(panelClosed){ $("sidepanel").classList.remove("hidden"); panelClosed=false; $("panelBtn").classList.add("on"); } renderQueue(); }
+function addToQueue(i){ queue.push(i); if(panelClosed){ showPanel(true); panelClosed=false; } renderQueue(); }
 function removeFromQueue(qp){ queue.splice(qp,1); renderQueue(); }
 function qItem(i, removable, qp){
   const t=library.tracks[i];
@@ -569,8 +573,14 @@ $("volIcon").onclick = ()=>{ audio.muted = !audio.muted; if(!audio.muted && audi
 audio.volume = 0.9; updateVolIcon(); fillRange($("volBar"));
 $("searchBox").oninput = ()=>applyFilter();
 $("filterChip").onclick = ()=>{ exactFilter=null; applyFilter(); };
-$("panelBtn").onclick=()=>{ const sp=$("sidepanel"); const open=sp.classList.contains("hidden"); sp.classList.toggle("hidden"); panelClosed=!open; $("panelBtn").classList.toggle("on",open); };
-$("spClose").onclick=()=>{ $("sidepanel").classList.add("hidden"); panelClosed=true; $("panelBtn").classList.remove("on"); };
+function showPanel(show){ $("sidepanel").classList.toggle("hidden",!show); $("spResize").classList.toggle("hidden",!show); $("panelBtn").classList.toggle("on",show); }
+$("panelBtn").onclick=()=>{ const willOpen=$("sidepanel").classList.contains("hidden"); showPanel(willOpen); panelClosed=!willOpen; };
+$("spClose").onclick=()=>{ showPanel(false); panelClosed=true; };
+(function(){ let dragging=false;
+  $("spResize").addEventListener("mousedown",(e)=>{ dragging=true; document.body.style.userSelect="none"; e.preventDefault(); });
+  window.addEventListener("mousemove",(e)=>{ if(!dragging) return; const w=Math.min(640, Math.max(260, window.innerWidth - e.clientX)); const sp=$("sidepanel"); sp.style.flexBasis=w+"px"; sp.style.width=w+"px"; });
+  window.addEventListener("mouseup",()=>{ if(dragging){ dragging=false; document.body.style.userSelect=""; } });
+})();
 let ctxTrack=-1;
 function showCtx(x,y,i){ ctxTrack=i; const m=$("ctxMenu"); m.classList.remove("hidden"); m.style.left=Math.min(x, window.innerWidth-m.offsetWidth-8)+"px"; m.style.top=Math.min(y, window.innerHeight-m.offsetHeight-8)+"px"; }
 function hideCtx(){ $("ctxMenu").classList.add("hidden"); }
